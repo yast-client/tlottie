@@ -65,7 +65,7 @@ impl Accumulator {
 fn map_zeroed(len: usize) -> Option<Storage> {
   use core::ffi::c_void;
 
-  unsafe extern "C" {
+  extern "C" {
     fn mmap(address: *mut c_void, length: usize, protection: i32, flags: i32, fd: i32, offset: isize) -> *mut c_void;
   }
 
@@ -91,7 +91,7 @@ impl Drop for Storage {
     #[cfg(any(target_os = "macos", target_os = "ios", target_os = "linux", target_os = "android", target_os = "freebsd"))]
     if let Storage::Mapped { ptr, len } = self {
       use core::ffi::c_void;
-      unsafe extern "C" {
+      extern "C" {
         fn munmap(address: *mut c_void, length: usize) -> i32;
       }
       let bytes = len.saturating_mul(core::mem::size_of::<f32>());

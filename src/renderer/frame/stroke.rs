@@ -590,7 +590,7 @@ pub(crate) fn stroke_polyline(
       continue;
     }
     let anchor = point_anchors.get(index).copied().unwrap_or(true);
-    if pts.last().is_none_or(|previous: &Vec2| (previous.x - point.x).abs() > 1e-6 || (previous.y - point.y).abs() > 1e-6) {
+    if pts.last().map_or(true, |previous: &Vec2| (previous.x - point.x).abs() > 1e-6 || (previous.y - point.y).abs() > 1e-6) {
       pts.push(*point);
       anchors.push(anchor);
     } else if let Some(previous) = anchors.last_mut() {

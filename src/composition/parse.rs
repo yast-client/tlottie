@@ -439,7 +439,7 @@ fn timeline_is_constant<T: PartialEq>(first: &Keyframe<T>, rest: &[Keyframe<T>])
   }
   rest
     .iter()
-    .all(|keyframe| keyframe.spatial.is_none() && &keyframe.value == value && keyframe.end.as_ref().is_none_or(|end| end == value))
+    .all(|keyframe| keyframe.spatial.is_none() && &keyframe.value == value && keyframe.end.as_ref().map_or(true, |end| end == value))
 }
 
 fn parse_one_keyframe<T: Lerp, F: Fn(&mut Cursor<'_>) -> Result<T> + Copy>(c: &mut Cursor<'_>, parse_val: F) -> Result<RawKeyframe<T>> {

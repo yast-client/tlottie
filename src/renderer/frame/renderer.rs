@@ -30,7 +30,7 @@ impl GradientLut {
   }
 
   pub(crate) fn as_ptr(&self) -> *const [u32; GRADIENT_LUT_SIZE] {
-    core::ptr::from_ref(&self.0.pixels)
+    &self.0.pixels as *const _
   }
 }
 
