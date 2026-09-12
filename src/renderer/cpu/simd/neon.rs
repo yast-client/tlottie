@@ -11,7 +11,7 @@ use core::arch::aarch64::{
 /// Exact `(n + 127) / 255` on u16 lanes (n <= 65025).
 #[inline]
 #[target_feature(enable = "neon")]
-fn div255_round(n: uint16x8_t) -> uint16x8_t {
+unsafe fn div255_round(n: uint16x8_t) -> uint16x8_t {
   let t = vaddq_u16(n, vdupq_n_u16(127));
   let u = vaddq_u16(vaddq_u16(t, vshrq_n_u16::<8>(t)), vdupq_n_u16(1));
   vshrq_n_u16::<8>(u)
@@ -19,24 +19,24 @@ fn div255_round(n: uint16x8_t) -> uint16x8_t {
 
 #[inline]
 #[target_feature(enable = "neon")]
-fn alpha_unpack(v: uint8x16_t) -> (uint16x8_t, uint16x8_t) {
+unsafe fn alpha_unpack(v: uint8x16_t) -> (uint16x8_t, uint16x8_t) {
   (vmovl_u8(vget_low_u8(v)), vmovl_u8(vget_high_u8(v)))
 }
 
 #[inline]
 #[target_feature(enable = "neon")]
-fn alpha_pack(lo: uint16x8_t, hi: uint16x8_t) -> uint8x16_t {
+unsafe fn alpha_pack(lo: uint16x8_t, hi: uint16x8_t) -> uint8x16_t {
   vcombine_u8(vmovn_u16(lo), vmovn_u16(hi))
 }
 
 #[inline]
 #[target_feature(enable = "neon")]
-fn alpha_over8(dst: uint16x8_t, source: uint16x8_t) -> uint16x8_t {
+unsafe fn alpha_over8(dst: uint16x8_t, source: uint16x8_t) -> uint16x8_t {
   over(dst, source, vsubq_u16(vdupq_n_u16(255), source))
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_blend_solid_neon(dst: &mut [u8], coverage: &[u8], alpha: u8) {
+pub(super) unsafe fn alpha_blend_solid_neon(dst: &mut [u8], coverage: &[u8], alpha: u8) {
   let alpha = vdupq_n_u16(u16::from(alpha));
   for (dst, coverage) in dst.chunks_exact_mut(16).zip(coverage.chunks_exact(16)) {
     #[allow(unsafe_code)]
@@ -53,7 +53,7 @@ pub(super) fn alpha_blend_solid_neon(dst: &mut [u8], coverage: &[u8], alpha: u8)
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_blend_product_neon(dst: &mut [u8], lhs: &[u8], rhs: &[u8]) {
+pub(super) unsafe fn alpha_blend_product_neon(dst: &mut [u8], lhs: &[u8], rhs: &[u8]) {
   for ((dst, lhs), rhs) in dst.chunks_exact_mut(16).zip(lhs.chunks_exact(16)).zip(rhs.chunks_exact(16)) {
     #[allow(unsafe_code)]
     let (d, l, r) = unsafe { (vld1q_u8(dst.as_ptr()), vld1q_u8(lhs.as_ptr()), vld1q_u8(rhs.as_ptr())) };
@@ -70,7 +70,7 @@ pub(super) fn alpha_blend_product_neon(dst: &mut [u8], lhs: &[u8], rhs: &[u8]) {
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_blend_uniform_neon(dst: &mut [u8], source: u8) {
+pub(super) unsafe fn alpha_blend_uniform_neon(dst: &mut [u8], source: u8) {
   let source = vdupq_n_u16(u16::from(source));
   for dst in dst.chunks_exact_mut(16) {
     #[allow(unsafe_code)]
@@ -84,7 +84,7 @@ pub(super) fn alpha_blend_uniform_neon(dst: &mut [u8], source: u8) {
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_composite_over_neon(dst: &mut [u8], src: &[u8], opacity: u8) {
+pub(super) unsafe fn alpha_composite_over_neon(dst: &mut [u8], src: &[u8], opacity: u8) {
   let opacity = vdupq_n_u16(u16::from(opacity));
   for (dst, src) in dst.chunks_exact_mut(16).zip(src.chunks_exact(16)) {
     #[allow(unsafe_code)]
@@ -101,7 +101,7 @@ pub(super) fn alpha_composite_over_neon(dst: &mut [u8], src: &[u8], opacity: u8)
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_multiply_neon(dst: &mut [u8], factors: &[u8]) {
+pub(super) unsafe fn alpha_multiply_neon(dst: &mut [u8], factors: &[u8]) {
   for (dst, factors) in dst.chunks_exact_mut(16).zip(factors.chunks_exact(16)) {
     #[allow(unsafe_code)]
     let (d, f) = unsafe { (vld1q_u8(dst.as_ptr()), vld1q_u8(factors.as_ptr())) };
@@ -115,7 +115,7 @@ pub(super) fn alpha_multiply_neon(dst: &mut [u8], factors: &[u8]) {
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_matte_neon(dst: &mut [u8], src: &[u8], opacity: u8, inverted: bool) {
+pub(super) unsafe fn alpha_matte_neon(dst: &mut [u8], src: &[u8], opacity: u8, inverted: bool) {
   let opacity = vdupq_n_u16(u16::from(opacity));
   let full = vdupq_n_u16(255);
   for (dst, src) in dst.chunks_exact_mut(16).zip(src.chunks_exact(16)) {
@@ -137,7 +137,7 @@ pub(super) fn alpha_matte_neon(dst: &mut [u8], src: &[u8], opacity: u8, inverted
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn alpha_mask_combine_neon(dst: &mut [u8], src: &[u8], mode: u8, inverted: bool, opacity: u8) {
+pub(super) unsafe fn alpha_mask_combine_neon(dst: &mut [u8], src: &[u8], mode: u8, inverted: bool, opacity: u8) {
   let opacity = vdupq_n_u16(u16::from(opacity));
   let full = vdupq_n_u16(255);
   for (dst, src) in dst.chunks_exact_mut(16).zip(src.chunks_exact(16)) {
@@ -172,7 +172,7 @@ pub(super) fn alpha_mask_combine_neon(dst: &mut [u8], src: &[u8], mode: u8, inve
 /// segmentation-invariant.
 #[allow(clippy::too_many_arguments)]
 #[target_feature(enable = "neon")]
-pub(super) fn radial_lut_fill_neon(out: &mut [u32], lut: &[u32], dd0x: f32, dd0y: f32, da: f32, db: f32, inv_r: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn radial_lut_fill_neon(out: &mut [u32], lut: &[u32], dd0x: f32, dd0y: f32, da: f32, db: f32, inv_r: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array. `x_start` and the
   // lane offsets are small exact integers (< 2^24), so `x_start+lane`
@@ -225,7 +225,7 @@ pub(super) fn radial_lut_fill_neon(out: &mut [u32], lut: &[u32], dd0x: f32, dd0y
 /// device column `X = x_start + lane` (segmentation-invariant), clamp,
 /// convert, 4 scalar LUT fetches (no gather on NEON).
 #[target_feature(enable = "neon")]
-pub(super) fn linear_lut_fill_neon(out: &mut [u32], lut: &[u32], row_base: f32, dt: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn linear_lut_fill_neon(out: &mut [u32], lut: &[u32], row_base: f32, dt: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array. `x_start + lane` are
   // exact integer columns (< 2^24), matching the scalar `(X as f32)`.
@@ -265,7 +265,7 @@ pub(super) fn linear_lut_fill_neon(out: &mut [u32], lut: &[u32], row_base: f32, 
 /// absolute-X Horner form from `focal_lut_fill_scalar` (mul/add, no fma).
 #[allow(clippy::too_many_arguments)]
 #[target_feature(enable = "neon")]
-pub(super) fn focal_lut_fill_neon(out: &mut [u32], lut: &[u32], g0x: f32, g0y: f32, sa: f32, sb: f32, dx: f32, dy: f32, a: f32, inv2a: f32, r: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn focal_lut_fill_neon(out: &mut [u32], lut: &[u32], g0x: f32, g0y: f32, sa: f32, sb: f32, dx: f32, dy: f32, a: f32, inv2a: f32, r: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array. `x_start + lane` are
   // exact integer columns (< 2^24), matching the scalar `(X as f32)`.
@@ -310,12 +310,12 @@ pub(super) fn focal_lut_fill_neon(out: &mut [u32], lut: &[u32], g0x: f32, g0y: f
 /// Premultiplied source-over of scaled source planes into dst planes.
 #[inline]
 #[target_feature(enable = "neon")]
-fn over(d: uint16x8_t, s: uint16x8_t, inv: uint16x8_t) -> uint16x8_t {
+unsafe fn over(d: uint16x8_t, s: uint16x8_t, inv: uint16x8_t) -> uint16x8_t {
   vminq_u16(vaddq_u16(s, vshrq_n_u16::<8>(vmulq_u16(d, vaddq_u16(inv, vdupq_n_u16(1))))), vdupq_n_u16(255))
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn fill_span_solid_neon(dst: &mut [u32], cov: &[u8], sr: u32, sg: u32, sb: u32, sa: u32) {
+pub(super) unsafe fn fill_span_solid_neon(dst: &mut [u32], cov: &[u8], sr: u32, sg: u32, sb: u32, sa: u32) {
   let (sr, sg, sb, sa) = (vdupq_n_u16(sr as u16), vdupq_n_u16(sg as u16), vdupq_n_u16(sb as u16), vdupq_n_u16(sa as u16));
   let full = vdupq_n_u16(255);
   for (dpx, cpx) in dst.chunks_exact_mut(8).zip(cov.chunks_exact(8)) {
@@ -349,7 +349,7 @@ pub(super) fn fill_span_solid_neon(dst: &mut [u32], cov: &[u8], sr: u32, sg: u32
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn fill_span_opaque_neon(dst: &mut [u32], cov: &[u8], color: u32, sr: u32, sg: u32, sb: u32) {
+pub(super) unsafe fn fill_span_opaque_neon(dst: &mut [u32], cov: &[u8], color: u32, sr: u32, sg: u32, sb: u32) {
   let color4 = vdupq_n_u32(color);
   for (dpx, cpx) in dst.chunks_exact_mut(8).zip(cov.chunks_exact(8)) {
     // SAFETY: both chunks have the exact sizes used by these loads/stores.
@@ -368,7 +368,7 @@ pub(super) fn fill_span_opaque_neon(dst: &mut [u32], cov: &[u8], color: u32, sr:
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn fill_span_uniform_neon(dst: &mut [u32], ca: u32, s_r: u32, s_g: u32, s_b: u32) {
+pub(super) unsafe fn fill_span_uniform_neon(dst: &mut [u32], ca: u32, s_r: u32, s_g: u32, s_b: u32) {
   let sa = vdupq_n_u16(ca as u16);
   let sr = vdupq_n_u16(s_r as u16);
   let sg = vdupq_n_u16(s_g as u16);
@@ -393,7 +393,7 @@ pub(super) fn fill_span_uniform_neon(dst: &mut [u32], ca: u32, s_r: u32, s_g: u3
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn composite_over_neon(dst: &mut [u32], src: &[u32], k: u32) {
+pub(super) unsafe fn composite_over_neon(dst: &mut [u32], src: &[u32], k: u32) {
   let kq = vdupq_n_u16(k as u16);
   let full = vdupq_n_u16(255);
   for (dpx, spx) in dst.chunks_exact_mut(8).zip(src.chunks_exact(8)) {
@@ -421,7 +421,7 @@ pub(super) fn composite_over_neon(dst: &mut [u32], src: &[u32], k: u32) {
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn apply_matte_alpha_neon(dst: &mut [u32], src: &[u32], source_opacity: u8, inverted: bool) {
+pub(super) unsafe fn apply_matte_alpha_neon(dst: &mut [u32], src: &[u32], source_opacity: u8, inverted: bool) {
   let opacity = vdupq_n_u16(u16::from(source_opacity));
   let full = vdupq_n_u16(255);
   for (dpx, spx) in dst.chunks_exact_mut(8).zip(src.chunks_exact(8)) {
@@ -458,7 +458,7 @@ pub(super) fn apply_matte_alpha_neon(dst: &mut [u32], src: &[u32], source_opacit
 /// the `*_lut_fill_neon` kernels do.
 #[inline]
 #[target_feature(enable = "neon")]
-fn gather4(lut: &[u32], idx: uint32x4_t, out: &mut [u32]) {
+unsafe fn gather4(lut: &[u32], idx: uint32x4_t, out: &mut [u32]) {
   let i0 = vgetq_lane_u32::<0>(idx) as usize;
   let i1 = vgetq_lane_u32::<1>(idx) as usize;
   let i2 = vgetq_lane_u32::<2>(idx) as usize;
@@ -477,7 +477,7 @@ fn gather4(lut: &[u32], idx: uint32x4_t, out: &mut [u32]) {
 /// pass through unscaled and the blended bytes are identical.
 #[inline]
 #[target_feature(enable = "neon")]
-fn blend8_over_k255(dpx: &mut [u32], src: &[u32; 8]) {
+unsafe fn blend8_over_k255(dpx: &mut [u32], src: &[u32; 8]) {
   // SAFETY: dpx is a chunks_exact_mut(8) slice (32 bytes); src is 8
   // u32 (32 bytes). vld4_u8/vst4_u8 read/write exactly those spans.
   #[allow(unsafe_code)]
@@ -507,7 +507,7 @@ fn blend8_over_k255(dpx: &mut [u32], src: &[u32; 8]) {
 #[inline]
 #[allow(clippy::too_many_arguments)]
 #[target_feature(enable = "neon")]
-fn linear_gather4(
+unsafe fn linear_gather4(
   lut: &[u32],
   kf: float32x4_t,
   t0v: float32x4_t,
@@ -528,7 +528,7 @@ fn linear_gather4(
 }
 
 #[target_feature(enable = "neon")]
-pub(super) fn linear_lut_over_neon(dst: &mut [u32], lut: &[u32], row_base: f32, dt: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn linear_lut_over_neon(dst: &mut [u32], lut: &[u32], row_base: f32, dt: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array; `x_start + lane` are
   // exact integer columns (< 2^24), matching the scalar `(X as f32)`.
@@ -573,7 +573,7 @@ pub(super) fn linear_lut_over_neon(dst: &mut [u32], lut: &[u32], row_base: f32, 
 /// [`radial_lut_fill_neon`], blend via [`blend8_over_k255`].
 #[allow(clippy::too_many_arguments)]
 #[target_feature(enable = "neon")]
-pub(super) fn radial_lut_over_neon(dst: &mut [u32], lut: &[u32], dd0x: f32, dd0y: f32, da: f32, db: f32, inv_r: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn radial_lut_over_neon(dst: &mut [u32], lut: &[u32], dd0x: f32, dd0y: f32, da: f32, db: f32, inv_r: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array; `x_start + lane` are
   // exact integer columns (< 2^24).
@@ -615,7 +615,7 @@ pub(super) fn radial_lut_over_neon(dst: &mut [u32], lut: &[u32], dd0x: f32, dd0y
 /// [`focal_lut_fill_neon`], blend via [`blend8_over_k255`].
 #[allow(clippy::too_many_arguments)]
 #[target_feature(enable = "neon")]
-pub(super) fn focal_lut_over_neon(dst: &mut [u32], lut: &[u32], g0x: f32, g0y: f32, sa: f32, sb: f32, dx: f32, dy: f32, a: f32, inv2a: f32, r: f32, x_start: f32, scale: f32) {
+pub(super) unsafe fn focal_lut_over_neon(dst: &mut [u32], lut: &[u32], g0x: f32, g0y: f32, sa: f32, sb: f32, dx: f32, dy: f32, a: f32, inv2a: f32, r: f32, x_start: f32, scale: f32) {
   let lanes = [0.0f32, 1.0, 2.0, 3.0];
   // SAFETY: `lanes` is a 16-byte readable array; `x_start + lane` are
   // exact integer columns (< 2^24).
