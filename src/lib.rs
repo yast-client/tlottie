@@ -14,6 +14,7 @@
 // in explicitly while keeping the rest of the crate safe by default.
 // Unit tests always use the standard test harness even when exercising the
 // opt-in no_std feature set. Production no_std artifacts stay genuinely so.
+#![feature(target_feature_11)]
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
